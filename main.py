@@ -83,6 +83,7 @@ class Display:
 
     def basic(self):
         self.sensor.read()
+        self.epd.init()
         HBlackimage = Image.new("1", (self.epd.height, self.epd.width), 255)  # 250*122
         Redimage = Image.new("1", (self.epd.height, self.epd.width), 255)
         drawblack = ImageDraw.Draw(HBlackimage)
