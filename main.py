@@ -80,6 +80,7 @@ class Display:
         self.epd.sleep()
 
     def basic(self):
+        self.sensor.read()
         self.epd.init()
         HBlackimage = Image.new("1", (self.epd.height, self.epd.width), 255)  # 250*122
         Redimage = Image.new("1", (self.epd.height, self.epd.width), 255)
@@ -101,5 +102,5 @@ class Display:
 if __name__ == "__main__":
     block_scheduler = BlockingScheduler()
     display = Display()
-    block_scheduler.add_job(display.basic, "interval", sceonds=60)
+    block_scheduler.add_job(display.basic, "interval", seconds=60)
     block_scheduler.start()
