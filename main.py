@@ -37,16 +37,18 @@ class OnBoardSensor:
     def read(self):
         bme = self.bme.readData()
         icm = self.icm.getdata()
+        bme = self.bme.readData()
+        icm = self.icm.getdata()
         self.pressure = round(bme[0], 2)
         self.temp = round(bme[1], 2)
         self.hum = round(bme[2], 2)
         self.lux = round(self.light.Lux(), 2)
         self.uv = self.uv.UVS()
-        self.gas = round(self.sgp.raw(), 2)
+        self.gas = round(self.sgp.measureRaw(int(self.temp), int(self.hum)), 2)
         self.roll, self.pitch, self.yaw = round(icm[0], 2), round(icm[1], 2), round(icm[2], 2)
-        self.acceleration = (icm[3], icm[4], icm[5])
-        self.gyroscope = (icm[6], icm[7], icm[8])
-        self.magnetic = (icm[9], icm[10], icm[11])
+        self.acceleration = (round(icm[3]), round(icm[4]), round(icm[5]))
+        self.gyroscope = (round(icm[6]), round(icm[7]), round(icm[8]))
+        self.magnetic = (round(icm[9]), round(icm[10]), round(icm[11]))
 
     def photo(self):
         os.makedirs("./img", exist_ok=True)
@@ -70,10 +72,11 @@ class OnBoardSensor:
 class Display:
     def __init__(self) -> None:
         self.epd = epd2in13b_V4.EPD()
-        self.font = ImageFont.truetype(os.path.join(fontdir, "Font.ttc"), 5)
+        self.font = ImageFont.truetype("./font/Minecraft.ttf", 16)
         self.sensor = OnBoardSensor()
+        self.sensor.read()
         self.epd.init()
-        self.epd.clear()
+        # self.epd.clear()
         self.epd.sleep()
 
     def basic(self):
@@ -82,32 +85,14 @@ class Display:
         Redimage = Image.new("1", (self.epd.height, self.epd.width), 255)
         drawblack = ImageDraw.Draw(HBlackimage)
         drawred = ImageDraw.Draw(Redimage)
-        drawblack.text((5, 0), text=f"温度: {self.sensor.temp}", font=self.font, fill=0)
-        drawblack.text((5, 20), text=f"湿度: {self.sensor.hum}", font=self.font, fill=0)
-        drawblack.text((5, 40), text=f"气压: {self.sensor.pressure}", font=self.font, fill=0)
-        drawblack.text((5, 80), text=f"光照: {self.sensor.light}", font=self.font, fill=0)
-        drawblack.text((5, 100), text=f"紫外: {self.sensor.uv}", font=self.font, fill=0)
-        drawblack.text((130, 0), text=f"乙醇: {self.sensor.gas}", font=self.font, fill=0)
-        drawblack.text((130, 20), text=f"姿态: Roll = {self.sensor.roll} Pitch = {self.sensor.pitch} Yaw = {self.sensor.yaw}", font=self.font, fill=0)
-        drawblack.text(
-            (130, 40),
-            text=f"加速度: X= {self.sensor.acceleration[0]} Y = {self.sensor.acceleration[1]} Z = {self.sensor.acceleration[2]}",
-            font=self.font,
-            fill=0,
-        )
-        drawblack.text(
-            (130, 60),
-            text=f"陀螺仪: X= {self.sensor.gyroscope[0]} Y = {self.sensor.gyroscope[1]} Z = {self.sensor.gyroscope[2]}",
-            font=self.font,
-            fill=0,
-        )
-        drawblack.text(
-            (130, 80),
-            text=f"磁力计: X= {self.sensor.magnetic[0]} Y = {self.sensor.magnetic[1]} Z = {self.sensor.magnetic[2]}",
-            font=self.font,
-            fill=0,
-        )
-        drawred.line((125, 0, 125, 0), fill=0)
+        drawblack.text((5, 5), text=f"温度 {self.sensor.temp}", font=self.font, fill=0)
+        drawblack.text((5, 25), text=f"湿度 {self.sensor.hum}", font=self.font, fill=0)
+        drawblack.text((5, 45), text=f"气压 {self.sensor.pressure}", font=self.font, fill=0)
+        drawblack.text((5, 65), text=f"光照 {self.sensor.lux}", font=self.font, fill=0)
+        drawblack.text((5, 85), text=f"紫外 {self.sensor.uv}", font=self.font, fill=0)
+        drawblack.text((5, 105), text=f"乙醇 {self.sensor.gas}", font=self.font, fill=0)
+        drawred.line((108, 0, 108, 0), fill=0)
+        drawred.line((109, 0, 109, 0), fill=0)
         HBlackimage = HBlackimage.rotate(180)
         self.epd.display(self.epd.getbuffer(HBlackimage), self.epd.getbuffer(Redimage))
         self.epd.sleep()
