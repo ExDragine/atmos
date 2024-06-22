@@ -19,7 +19,7 @@ fontdir = os.path.join(os.path.dirname(os.path.dirname((os.path.realpath(__file_
 libdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib")
 
 
-def photo(self):
+def photo():
     os.makedirs("./img", exist_ok=True)
     file_name = datetime.datetime.now().strftime("%H-%M-%S")
     today = datetime.datetime.today()
