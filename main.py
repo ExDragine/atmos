@@ -4,6 +4,7 @@ import datetime
 from astral import LocationInfo
 from astral.sun import sun
 from PIL import Image, ImageFont, ImageDraw
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 from interface.ICM20948 import ICM20948  # Gyroscope/Acceleration/Magnetometer
@@ -16,6 +17,25 @@ from lib import epd2in13b_V4
 picdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "pic")
 fontdir = os.path.join(os.path.dirname(os.path.dirname((os.path.realpath(__file__)))), "font")
 libdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib")
+
+
+def photo(self):
+    os.makedirs("./img", exist_ok=True)
+    file_name = datetime.datetime.now().strftime("%H-%M-%S")
+    today = datetime.datetime.today()
+    city = LocationInfo("guangzhou", "China", "Asia/Harbin", 23.109866, 113.2683)
+    s = sun(city.observer, date=datetime.date(today.year, today.month, today.day), tzinfo=city.timezone)
+
+    sunrise = int((s["sunrise"] + datetime.timedelta(minutes=-20)).timestamp())
+    sunset = int((s["sunset"] + datetime.timedelta(minutes=20)).timestamp())
+    if int(datetime.datetime.now().timestamp()) > sunset or int(datetime.datetime.now().timestamp()) < sunrise:
+        os.system(f"libcamera-still --nopreview --shutter 6000000 --rotation 180 --ev 0.5 --metering centre --awb daylight -o ./img/{file_name}.jpg")
+    else:
+        os.system(f"libcamera-still --nopreview --rotation 180 --metering centre --awb daylight -o ./img/{file_name}.jpg")
+    if len(os.listdir("./img")) > 288:
+        file_list = os.listdir("./data/photo")
+        file_list.sort(key=lambda x: os.path.getmtime(os.path.join("./img", x)))
+        os.remove(os.path.join("./img", file_list[0]))
 
 
 class OnBoardSensor:
@@ -50,24 +70,6 @@ class OnBoardSensor:
         self.gyroscope = (round(icm[6]), round(icm[7]), round(icm[8]))
         self.magnetic = (round(icm[9]), round(icm[10]), round(icm[11]))
 
-    def photo(self):
-        os.makedirs("./img", exist_ok=True)
-        file_name = datetime.datetime.now().strftime("%H-%M-%S")
-        today = datetime.datetime.today()
-        city = LocationInfo("guangzhou", "China", "Asia/Harbin", 23.109866, 113.2683)
-        s = sun(city.observer, date=datetime.date(today.year, today.month, today.day), tzinfo=city.timezone)
-
-        sunrise = int((s["sunrise"] + datetime.timedelta(minutes=-20)).timestamp())
-        sunset = int((s["sunset"] + datetime.timedelta(minutes=20)).timestamp())
-        if int(datetime.datetime.now().timestamp()) > sunset or int(datetime.datetime.now().timestamp()) < sunrise:
-            os.system(f"libcamera-still --nopreview --shutter 6000000 --rotation 180 --ev 0.5 --metering centre --awb daylight -o ./img/{file_name}.jpg")
-        else:
-            os.system(f"libcamera-still --nopreview --rotation 180 --metering centre --awb daylight -o ./img/{file_name}.jpg")
-        if len(os.listdir("./img")) > 288:
-            file_list = os.listdir("./data/photo")
-            file_list.sort(key=lambda x: os.path.getmtime(os.path.join("./img", x)))
-            os.remove(os.path.join("./img", file_list[0]))
-
 
 class Display:
     def __init__(self) -> None:
@@ -81,7 +83,6 @@ class Display:
 
     def basic(self):
         self.sensor.read()
-        self.epd.init()
         HBlackimage = Image.new("1", (self.epd.height, self.epd.width), 255)  # 250*122
         Redimage = Image.new("1", (self.epd.height, self.epd.width), 255)
         drawblack = ImageDraw.Draw(HBlackimage)
@@ -100,7 +101,13 @@ class Display:
 
 
 if __name__ == "__main__":
-    block_scheduler = BlockingScheduler()
     display = Display()
-    block_scheduler.add_job(display.basic, "interval", seconds=60)
-    block_scheduler.start()
+    try:
+        background_scheduler = BackgroundScheduler()
+        background_scheduler.add_job(photo, "interval", seconds=60)
+        background_scheduler.start()
+        block_scheduler = BlockingScheduler()
+        block_scheduler.add_job(display.basic, "interval", seconds=60)
+        block_scheduler.start()
+    except KeyboardInterrupt:
+        display.epd.sleep()
