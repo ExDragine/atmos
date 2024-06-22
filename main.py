@@ -1,7 +1,10 @@
 import os
 import datetime
 
+from astral import LocationInfo
+from astral.sun import sun
 from PIL import Image, ImageFont, ImageDraw
+from apscheduler.schedulers.blocking import BlockingScheduler
 
 from interface.ICM20948 import ICM20948  # Gyroscope/Acceleration/Magnetometer
 from interface.BME280 import BME280  # Atmospheric Pressure/Temperature and humidity
@@ -10,9 +13,9 @@ from interface.TSL2591 import TSL2591  # LIGHT
 from interface.SGP40 import SGP40  # Gas
 from lib import epd2in13b_V4
 
-picdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'pic')
-fontdir = os.path.join(os.path.dirname(os.path.dirname((os.path.realpath(__file__)))), 'font')
-libdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'lib')
+picdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "pic")
+fontdir = os.path.join(os.path.dirname(os.path.dirname((os.path.realpath(__file__)))), "font")
+libdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib")
 
 
 class OnBoardSensor:
@@ -48,19 +51,26 @@ class OnBoardSensor:
     def photo(self):
         os.makedirs("./img", exist_ok=True)
         file_name = datetime.datetime.now().strftime("%H-%M-%S")
-        # if night:
-        #     os.system("libcamera-still --nopreview --shutter 6000000 --rotation 180 --ev 0.5 --metering centre -o ./data/photo/{file_name}.jpg")
-        os.system(f"libcamera-still --nopreview --rotation 180 --metering centre -o ./data/photo/{file_name}.jpg")
-        if len(os.listdir("./data/photo")) > 288:
+        today = datetime.datetime.today()
+        city = LocationInfo("guangzhou", "China", "Asia/Harbin", 23.109866, 113.2683)
+        s = sun(city.observer, date=datetime.date(today.year, today.month, today.day), tzinfo=city.timezone)
+
+        sunrise = int((s["sunrise"] + datetime.timedelta(minutes=-20)).timestamp())
+        sunset = int((s["sunset"] + datetime.timedelta(minutes=20)).timestamp())
+        if int(datetime.datetime.now().timestamp()) > sunset or int(datetime.datetime.now().timestamp()) < sunrise:
+            os.system(f"libcamera-still --nopreview --shutter 6000000 --rotation 180 --ev 0.5 --metering centre --awb daylight -o ./img/{file_name}.jpg")
+        else:
+            os.system(f"libcamera-still --nopreview --rotation 180 --metering centre --awb daylight -o ./img/{file_name}.jpg")
+        if len(os.listdir("./img")) > 288:
             file_list = os.listdir("./data/photo")
-            file_list.sort(key=lambda x: os.path.getmtime(os.path.join("./data/photo", x)))
-            os.remove(os.path.join("./data/photo", file_list[0]))
+            file_list.sort(key=lambda x: os.path.getmtime(os.path.join("./img", x)))
+            os.remove(os.path.join("./img", file_list[0]))
 
 
 class Display:
     def __init__(self) -> None:
         self.epd = epd2in13b_V4.EPD()
-        self.font = ImageFont.truetype(os.path.join(fontdir, 'Font.ttc'), 5)
+        self.font = ImageFont.truetype(os.path.join(fontdir, "Font.ttc"), 5)
         self.sensor = OnBoardSensor()
         self.epd.init()
         self.epd.clear()
@@ -103,7 +113,8 @@ class Display:
         self.epd.sleep()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    block_scheduler = BlockingScheduler()
     display = Display()
-    display.basic()
-    exit()
+    block_scheduler.add_job(display.basic, "interval", sceonds=60)
+    block_scheduler.start()
