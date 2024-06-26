@@ -199,3 +199,4 @@ pyrightconfig.json
 
 data/
 img/
+*.db

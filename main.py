@@ -7,6 +7,7 @@ from PIL import Image, ImageFont, ImageDraw
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
 
+from function.sql import Database
 from interface.ICM20948 import ICM20948  # Gyroscope/Acceleration/Magnetometer
 from interface.BME280 import BME280  # Atmospheric Pressure/Temperature and humidity
 from interface.LTR390 import LTR390  # UV
@@ -69,6 +70,13 @@ class OnBoardSensor:
         self.acceleration = (round(icm[3]), round(icm[4]), round(icm[5]))
         self.gyroscope = (round(icm[6]), round(icm[7]), round(icm[8]))
         self.magnetic = (round(icm[9]), round(icm[10]), round(icm[11]))
+        data = (
+            [self.temp, self.hum, self.pressure, self.lux, self.uvs, self.gas, self.roll, self.pitch, self.yaw]
+            + list(self.acceleration)
+            + list(self.gyroscope)
+            + list(self.magnetic)
+        )
+        database.insert(data)
 
 
 class Display:
@@ -76,10 +84,6 @@ class Display:
         self.epd = epd2in13b_V4.EPD()
         self.font = ImageFont.truetype("./font/Minecraft.ttf", 16)
         self.sensor = OnBoardSensor()
-        self.sensor.read()
-        self.epd.init()
-        # self.epd.clear()
-        self.epd.sleep()
 
     def basic(self):
         self.sensor.read()
@@ -103,6 +107,10 @@ class Display:
 
 if __name__ == "__main__":
     display = Display()
+    database = Database("record.db")
+
+    if not os.path.exists("disk.db"):
+        database.init()
     try:
         background_scheduler = BackgroundScheduler()
         background_scheduler.add_job(photo, "interval", seconds=60)
@@ -112,3 +120,4 @@ if __name__ == "__main__":
         block_scheduler.start()
     except KeyboardInterrupt:
         display.epd.sleep()
+        database.close()
