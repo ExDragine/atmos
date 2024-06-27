@@ -1,3 +1,4 @@
+import math
 import os
 import datetime
 
@@ -76,6 +77,9 @@ class OnBoardSensor:
             + list(self.gyroscope)
             + list(self.magnetic)
         )
+        # shake = math.sqrt(int(pow(int(self.acceleration[0]), 2)) + int(pow(int(self.acceleration[1]), 2)) + int(pow(int(self.acceleration[2]), 2)))
+        shake = round(math.sqrt(pow(self.roll, 2) + pow(self.pitch, 2) + pow(self.yaw, 2)), 4)
+        _ = shake
         database.insert(data)
 
 
