@@ -78,8 +78,7 @@ class OnBoardSensor:
             + list(self.magnetic)
         )
         # shake = math.sqrt(int(pow(int(self.acceleration[0]), 2)) + int(pow(int(self.acceleration[1]), 2)) + int(pow(int(self.acceleration[2]), 2)))
-        shake = round(math.sqrt(pow(self.roll, 2) + pow(self.pitch, 2) + pow(self.yaw, 2)), 4)
-        _ = shake
+        self.shake = round(math.sqrt(pow(self.gyroscope[0], 2) + pow(self.gyroscope[1], 2) + pow(self.gyroscope[2], 2)), 4)
         database.insert(data)
 
 
@@ -100,7 +99,7 @@ class Display:
         drawblack.text((5, 45), text=f"气压 {self.sensor.pressure}", font=self.font, fill=0)
         drawblack.text((5, 65), text=f"光照 {self.sensor.lux}", font=self.font, fill=0)
         drawblack.text((5, 85), text=f"紫外 {self.sensor.uvs}", font=self.font, fill=0)
-        drawblack.text((5, 105), text=f"乙醇 {self.sensor.gas}", font=self.font, fill=0)
+        drawblack.text((5, 105), text=f"振动 {self.sensor.shake}", font=self.font, fill=0)
         drawred.line((108, 0, 108, 0), fill=0)
         drawred.line((109, 0, 109, 0), fill=0)
         HBlackimage = HBlackimage.rotate(180)
