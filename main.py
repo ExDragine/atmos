@@ -123,4 +123,3 @@ if __name__ == "__main__":
         block_scheduler.start()
     except KeyboardInterrupt:
         display.epd.sleep()
-        database.close()
