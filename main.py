@@ -31,11 +31,11 @@ def photo():
     sunrise = int((s["sunrise"] + datetime.timedelta(minutes=-20)).timestamp())
     sunset = int((s["sunset"] + datetime.timedelta(minutes=20)).timestamp())
     if int(datetime.datetime.now().timestamp()) > sunset or int(datetime.datetime.now().timestamp()) < sunrise:
-        os.system(f"libcamera-still --nopreview --shutter 6000000 --rotation 180 --ev 0.5 --metering centre --awb daylight -o ./img/{file_name}.jpg")
+        os.system(f"rpicam-still --nopreview --shutter 6000000 --rotation 180 --ev 0.5 --metering centre --awb daylight -o ./img/{file_name}.jpg")
     else:
-        os.system(f"libcamera-still --nopreview --rotation 180 --metering centre --awb daylight -o ./img/{file_name}.jpg")
-    if len(os.listdir("./img")) > 288:
-        file_list = os.listdir("./data/photo")
+        os.system(f"rpicam-still --nopreview --rotation 180 --metering centre --awb daylight -o ./img/{file_name}.jpg")
+    if len(os.listdir("./img")) > 1440:
+        file_list = os.listdir("./img")
         file_list.sort(key=lambda x: os.path.getmtime(os.path.join("./img", x)))
         os.remove(os.path.join("./img", file_list[0]))
 
@@ -91,7 +91,6 @@ class Display:
 
     def basic(self):
         self.sensor.read()
-        self.epd.init()
         HBlackimage = Image.new("1", (self.epd.height, self.epd.width), 255)  # 250*122
         Redimage = Image.new("1", (self.epd.height, self.epd.width), 255)
         drawblack = ImageDraw.Draw(HBlackimage)
@@ -105,6 +104,7 @@ class Display:
         drawred.line((108, 0, 108, 0), fill=0)
         drawred.line((109, 0, 109, 0), fill=0)
         HBlackimage = HBlackimage.rotate(180)
+        self.epd.init()
         self.epd.display(self.epd.getbuffer(HBlackimage), self.epd.getbuffer(Redimage))
         self.epd.sleep()
 
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     display = Display()
     database = Database("record.db")
 
-    if not os.path.exists("disk.db"):
+    if not os.path.exists("record.db"):
         database.init()
     try:
         background_scheduler = BackgroundScheduler()
